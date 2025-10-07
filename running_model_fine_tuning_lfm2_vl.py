@@ -13,11 +13,11 @@ import os
 # Un-comment and comment to choose the model
 #MODEL_NAME = "LFM2-VL-1.6B"
 MODEL_NAME = "LFM2-VL-450M"
-BASE_MODEL_ID = r"C:\Users\igmartin\projects\liquid_ai_models\LFM2-VL-450M"
-ADAPTER_ID = r"C:\Users\igmartin\projects\liquid_ai_models\lfm2-vl-450-fine-tuning"
+BASE_MODEL_ID = r".\LFM2-VL-450M"
+ADAPTER_ID = r".\lfm2-vl-450-fine-tuning"
 
 # --- PATH FOR THE GR.IMAGE COMPONENT ---
-project_path = r"C:\Users\igmartin\projects\liquid_ai_models"
+project_path = r"."
 logo_path = os.path.join(project_path, "logo.png")
 favicon_path = os.path.join(project_path, "icon.png")
 

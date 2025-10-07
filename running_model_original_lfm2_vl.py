@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
-# Enhanced Gradio web UI for LiquidAI/LFM2-VL with improved aesthetics and error handling
+# Enhanced Gradio web UI for LiquidAI/LFM2-VL (Base Model)
 
 import torch
 import gradio as gr
 from transformers import AutoProcessor, AutoModelForImageTextToText
 from PIL import Image
 import traceback
-from datetime import datetime
+import os
 
-LOGO_PATH = "https://www.capgemini.com/wp-content/themes/capgemini2020/assets/images/footer-logo.svg"
+# --- 1. CONFIGURATION (MODIFIED) ---
+# Updated model name for clarity
+MODEL_NAME = "LFM2-VL-450M (Base Model)"
+# This is now the only model we will load
+BASE_MODEL_ID = r".\LFM2-VL-450M"
+# REMOVED: ADAPTER_ID is no longer necessary
 
-# Un-comment and comment to choose the model
-# MODEL_ID = r"C:\Users\igmartin\projects\liquid\/LFM2-VL-1.6B"
-# MODEL_ID = "LiquidAI/LFM2-VL-450M"
-MODEL_ID = r"C:\Users\igmartin\projects\liquid\LFM2-VL-450M"
+# --- PATH FOR THE GR.IMAGE COMPONENT ---
+project_path = r"."
+logo_path = os.path.join(project_path, "logo.png")
+favicon_path = os.path.join(project_path, "icon.png")
 
 # Custom CSS for modern dark theme
 CUSTOM_CSS = """
@@ -23,6 +28,12 @@ CUSTOM_CSS = """
 }
 .container {
     max-width: 1200px !important;
+}
+#header-markdown h1, #header-markdown h3 {
+    color: white;
+    font-weight: 300;
+    margin: 0;
+    padding: 0;
 }
 #chatbot {
     height: 600px !important;
@@ -35,55 +46,16 @@ CUSTOM_CSS = """
     font-size: 15px;
     line-height: 1.6;
 }
-.user-row {
-    background: rgba(59, 130, 246, 0.15);
-    border-left: 3px solid #3b82f6;
-}
-.bot-row {
-    background: rgba(16, 185, 129, 0.15);
-    border-left: 3px solid #10b981;
-}
 .input-row {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 12px;
     padding: 15px;
     margin-top: 20px;
 }
-#msg-box {
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(0, 0, 0, 0.2);
-    color: white;
-}
-#send-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    padding: 12px 32px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-#send-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-}
-.image-upload {
-    border: 2px dashed rgba(255, 255, 255, 0.3);
-    border-radius: 12px;
-    transition: all 0.3s ease;
-}
-.image-upload:hover {
-    border-color: rgba(102, 126, 234, 0.6);
-    background: rgba(102, 126, 234, 0.1);
-}
-.accordion {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    margin-top: 20px;
-}
 """
 
-# --- Load model on GPU (bf16 if supported, else fp16) ---
-print(f"🚀 Initializing {MODEL_ID}...")
+# --- 3. LOAD MODEL & PROCESSOR (MODIFIED) ---
+print(f"🚀 Initializing {MODEL_NAME}...")
 use_bf16 = torch.cuda.is_available() and torch.cuda.get_device_capability(0)[0] >= 8
 dtype = torch.bfloat16 if use_bf16 else torch.float16
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -95,17 +67,23 @@ print(f"  • CUDA Available: {torch.cuda.is_available()}")
 if torch.cuda.is_available():
     print(f"  • GPU: {torch.cuda.get_device_name(0)}")
 
-print(f"\n⏳ Loading model...")
+print(f"\n⏳ Loading base model from: {BASE_MODEL_ID}...")
+# MODIFIED: The model is now loaded directly, without a 'base_model' intermediate variable.
 model = AutoModelForImageTextToText.from_pretrained(
-    MODEL_ID,
+    BASE_MODEL_ID,
     device_map="auto" if device == "cuda" else None,
     torch_dtype=dtype if device == "cuda" else torch.float32,
     trust_remote_code=True,
     low_cpu_mem_usage=True,
 )
+
+# REMOVED: The PeftModel loading and merging steps are no longer here.
+print("✅ Base model loaded successfully.")
+
 model.eval()
 
-processor = AutoProcessor.from_pretrained(MODEL_ID, trust_remote_code=True)
+# The processor is loaded from the base model's directory
+processor = AutoProcessor.from_pretrained(BASE_MODEL_ID, trust_remote_code=True)
 
 # Enable TF32 for faster inference on Ampere GPUs
 if device == "cuda":
@@ -157,12 +135,8 @@ def generate_response(
     global conversation_state, current_image
     
     try:
-        # Build user content
         user_content = []
-        
-        # Handle image
         if image is not None:
-            # New image uploaded
             if not isinstance(image, Image.Image):
                 image = Image.fromarray(image)
             
@@ -176,25 +150,20 @@ def generate_response(
             current_image = image
             user_content.append({"type": "image", "image": image})
         elif current_image is not None and len(conversation_state) > 0:
-            # Use existing image for follow-up questions
             user_content.append({"type": "image", "image": current_image})
         
-        # Add text
         msg_txt = (message or "").strip()
         if msg_txt:
             user_content.append({"type": "text", "text": msg_txt})
         elif not user_content:
             return "Please provide a message or image.", conversation_state
         
-        # Update conversation state
         conversation_state.append({"role": "user", "content": user_content})
         
-        # Build full conversation for model
         conversation = [
             {"role": "system", "content": [{"type": "text", "text": "You are a helpful multimodal assistant by Liquid AI."}]}
         ] + conversation_state
         
-        # Prepare inputs
         processor_kwargs = {}
         if hasattr(processor, 'image_processor'):
             processor_kwargs.update({
@@ -215,7 +184,6 @@ def generate_response(
         if device == "cuda":
             inputs = {k: v.to(device) if torch.is_tensor(v) else v for k, v in inputs.items()}
         
-        # Generate
         gen_kwargs = {
             "max_new_tokens": int(max_new_tokens),
             "pad_token_id": processor.tokenizer.pad_token_id,
@@ -244,7 +212,6 @@ def generate_response(
         
         print(f"✅ Generated response: {response[:100]}...")
         
-        # Update conversation state
         conversation_state.append({
             "role": "assistant",
             "content": [{"type": "text", "text": response}]
@@ -258,14 +225,10 @@ def generate_response(
         return error_msg, conversation_state
 
 def format_conversation_for_display(conversation_state):
-    """
-    Format conversation state for display in chatbot
-    """
     formatted = []
     i = 0
     while i < len(conversation_state):
         if i < len(conversation_state) and conversation_state[i]["role"] == "user":
-            # Extract user message
             user_text = ""
             has_image = False
             for content in conversation_state[i]["content"]:
@@ -274,7 +237,6 @@ def format_conversation_for_display(conversation_state):
                 elif content["type"] == "image":
                     has_image = True
             
-            # Get assistant response if exists
             assistant_text = ""
             if i + 1 < len(conversation_state) and conversation_state[i + 1]["role"] == "assistant":
                 for content in conversation_state[i + 1]["content"]:
@@ -284,7 +246,6 @@ def format_conversation_for_display(conversation_state):
             else:
                 i += 1
             
-            # Format for display
             if has_image and user_text:
                 user_display = f"📷 {user_text}"
             elif has_image:
@@ -299,19 +260,11 @@ def format_conversation_for_display(conversation_state):
     return formatted
 
 def chat(message, image, history, *args):
-    """
-    Main chat function that handles the conversation
-    """
-    # Generate response
     response, updated_state = generate_response(message, image, *args)
-    
-    # Format for display
     history = format_conversation_for_display(updated_state)
-    
     return "", None, history
 
 def clear_chat():
-    """Clear all chat states"""
     global conversation_state, current_image
     conversation_state = []
     current_image = None
@@ -319,32 +272,26 @@ def clear_chat():
     return None, None, []
 
 # --- Build Gradio Interface ---
-with gr.Blocks(title="LFM2-VL Enhanced", theme=gr.themes.Soft(), css=CUSTOM_CSS) as demo:
-    gr.Markdown(f"""
-    <table style="border: none; width: auto;">
-        <tr>
-            <td style="padding-right: 15px;"><img src="{LOGO_PATH}" style="height:40px;"></td>
-            <td style="vertical-align: middle;"><h1 style="margin: 0;">LFM2-VL-1.6B Vision-Language Model</h1></td>
-        </tr>
-    </table>
+with gr.Blocks(title="LFM2-VL Base", theme=gr.themes.Soft(), css=CUSTOM_CSS) as demo:
+    with gr.Row():
+        with gr.Column(scale=1, min_width=100):
+            gr.Image(logo_path, height=40, interactive=False, show_label=False, show_download_button=False, container=False, show_fullscreen_button=False)
+        with gr.Column(scale=10):
+            gr.Markdown(
+                f"""
+                <div id="header-markdown">
+                    <h1>{MODEL_NAME}</h1>
+                    <h3>The original model to describe images</h3>
+                </div>
+                """,
+            )
 
-    ### Liquid AI's Multimodal Model for Text and Image Understanding
-
-    <div style='background: rgba(255,255,255,0.1); border-radius: 8px; padding: 15px; margin: 10px 0;'>
-    • <b>1.6B parameters</b> optimized for edge deployment<br>
-    • <b>2× faster inference</b> compared to similar VLMs<br>
-    • <b>Native resolution processing</b> up to 512×512<br>
-    • <b>32K token context</b> for long conversations
-    </div>
-    """)
-    
-    # Simple text-based chatbot to avoid image display issues
     chatbot = gr.Chatbot(
         label="💬 Conversation",
         height=600,
         elem_id="chatbot",
         show_copy_button=True,
-        type="tuples",  # Use tuples format for simplicity
+        type="tuples",
     )
     
     with gr.Group(elem_classes="input-row"):
@@ -424,6 +371,6 @@ with gr.Blocks(title="LFM2-VL Enhanced", theme=gr.themes.Soft(), css=CUSTOM_CSS)
     
     clear.click(clear_chat, None, [msg, img, chatbot], queue=False)
 
-# Launch the app
-if __name__ == "__main__":
-    demo.queue().launch()
+# --- LAUNCH THE APP ---
+if __name__ == "__main__":   
+    demo.queue().launch(favicon_path=favicon_path)

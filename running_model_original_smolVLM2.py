@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-# Gradio web UI for the fine-tuned SmolVLM2-500M Drowsiness Detection model
+# Gradio web UI for the SmolVLM2-500M Base Model
 
 import torch
 import gradio as gr
 from transformers import AutoProcessor, AutoModelForImageTextToText
-from peft import PeftModel
 from PIL import Image
 import traceback
 import os
 
-# --- 1. CONFIGURATION ---
-MODEL_NAME = "SmolVLM2-500M-Drowsiness-Finetuned"
-BASE_MODEL_ID = r".\SmolVLM2-500M-Video-Instruct"
-ADAPTER_ID = r".\smolvlm2-500m-drowsiness-finetune"
+# --- 1. CONFIGURATION (MODIFIED) ---
+# Updated model name for clarity
+MODEL_NAME = "SmolVLM2-500M (Base Model)" 
+# This is now the only model we will load
+BASE_MODEL_ID = r".\SmolVLM2-500M-Video-Instruct" 
+# REMOVED: ADAPTER_ID is no longer needed
 
 # --- PATH FOR THE GR.IMAGE COMPONENT ---
 project_path = r"."
@@ -51,15 +52,16 @@ CUSTOM_CSS = """
     padding: 15px;
     margin-top: 20px;
 }
-""" # Simplified CSS as we are using Gradio components for the header
+"""
 
-# --- 3. LOAD MODEL & PROCESSOR ---
+# --- 3. LOAD MODEL & PROCESSOR (MODIFIED) ---
 print(f"🚀 Initializing {MODEL_NAME}...")
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"📊 System Info: Device: {device}")
 
 print(f"\n⏳ Loading base model from: {BASE_MODEL_ID}...")
-base_model = AutoModelForImageTextToText.from_pretrained(
+# MODIFIED: Load the model directly into the 'model' variable
+model = AutoModelForImageTextToText.from_pretrained(
     BASE_MODEL_ID,
     device_map="auto" if device == "cuda" else None,
     torch_dtype=torch.float16 if device == "cuda" else torch.float32,
@@ -67,20 +69,16 @@ base_model = AutoModelForImageTextToText.from_pretrained(
     low_cpu_mem_usage=True,
 )
 
-print(f"✅ Base model loaded. Applying LoRA adapter from: {ADAPTER_ID}...")
-model = PeftModel.from_pretrained(base_model, ADAPTER_ID)
-
-print("Merging adapter weights...")
-model = model.merge_and_unload()
-print("✅ Adapter merged.")
+# REMOVED: The section for loading, applying, and merging the PeftModel adapter is gone.
 
 model.eval()
 processor = AutoProcessor.from_pretrained(BASE_MODEL_ID, trust_remote_code=True)
-print("✅ Model and processor loaded successfully!\n")
+print("✅ Base model and processor loaded successfully!\n")
 
-# --- 4. CORE CHAT LOGIC (Unchanged) ---
+# --- 4. CORE CHAT LOGIC ---
+# MODIFIED: Made the system message more generic
 SYSTEM_MESSAGE = (
-    "You are a Vision Language Model specialized in analyzing face images and determining if a person is drowsy or not. "
+    "You are a helpful multimodal assistant. "
     "Provide a concise answer based on the image and question."
 )
 conversation_state = []
@@ -110,7 +108,8 @@ def generate_response(
         elif current_image is not None:
             user_content.append({"type": "image", "image": current_image})
 
-        msg_txt = (message or "Is the person in the image drowsy or not?").strip()
+        # MODIFIED: More generic default message
+        msg_txt = (message or "Describe the image.").strip()
         user_content.append({"type": "text", "text": msg_txt})
         
         conversation_state.append({"role": "user", "content": user_content})
@@ -168,16 +167,15 @@ def clear_chat():
 # --- 5. BUILD GRADIO INTERFACE ---
 with gr.Blocks(title=MODEL_NAME, theme=gr.themes.Soft(), css=CUSTOM_CSS) as demo:
     
-    # --- HEADER SECTION REBUILT WITH GR.IMAGE ---
     with gr.Row():
-        with gr.Column(scale=1, min_width=100): # Small column for the logo
+        with gr.Column(scale=1, min_width=100):
             gr.Image(logo_path, height=40, interactive=False, show_label=False, show_download_button=False, container=False, show_fullscreen_button=False)
         with gr.Column(scale=10):
             gr.Markdown(
                 f"""
                 <div id="header-markdown">
                     <h1>{MODEL_NAME}</h1>
-                    <h3>A fine-tuned model to describe images and detect driver drowsiness</h3>
+                    <h3>The original model for describing images and video</h3>
                 </div>
                 """,
             )
@@ -188,7 +186,7 @@ with gr.Blocks(title=MODEL_NAME, theme=gr.themes.Soft(), css=CUSTOM_CSS) as demo
         with gr.Row():
             with gr.Column(scale=7):
                 msg = gr.Textbox(
-                    label="✍️ Your Message", placeholder="Upload an image and ask 'Is the person drowsy?' or just click Send.",
+                    label="✍️ Your Message", placeholder="Upload an image and ask a question, or just click Send to get a description.",
                     lines=3, elem_id="msg-box",
                 )
             with gr.Column(scale=3):
