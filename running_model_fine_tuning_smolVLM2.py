@@ -51,7 +51,7 @@ CUSTOM_CSS = """
     padding: 15px;
     margin-top: 20px;
 }
-""" # Simplified CSS as we are using Gradio components for the header
+"""
 
 # --- 3. LOAD MODEL & PROCESSOR ---
 print(f"🚀 Initializing {MODEL_NAME}...")
@@ -168,7 +168,6 @@ def clear_chat():
 # --- 5. BUILD GRADIO INTERFACE ---
 with gr.Blocks(title=MODEL_NAME, theme=gr.themes.Soft(), css=CUSTOM_CSS) as demo:
     
-    # --- HEADER SECTION REBUILT WITH GR.IMAGE ---
     with gr.Row():
         with gr.Column(scale=1, min_width=100): # Small column for the logo
             gr.Image(logo_path, height=40, interactive=False, show_label=False, show_download_button=False, container=False, show_fullscreen_button=False)

@@ -77,7 +77,6 @@ model = AutoModelForImageTextToText.from_pretrained(
     low_cpu_mem_usage=True,
 )
 
-# REMOVED: The PeftModel loading and merging steps are no longer here.
 print("✅ Base model loaded successfully.")
 
 model.eval()

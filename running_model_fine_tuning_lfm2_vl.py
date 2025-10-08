@@ -10,8 +10,6 @@ import traceback
 from datetime import datetime
 import os
 
-# Un-comment and comment to choose the model
-#MODEL_NAME = "LFM2-VL-1.6B"
 MODEL_NAME = "LFM2-VL-450M"
 BASE_MODEL_ID = r".\LFM2-VL-450M"
 ADAPTER_ID = r".\lfm2-vl-450-fine-tuning"
@@ -81,7 +79,6 @@ base_model = AutoModelForImageTextToText.from_pretrained(
 print(f"✅ Base model loaded. Now applying LoRA adapter from: {ADAPTER_ID}...")
 model = PeftModel.from_pretrained(base_model, ADAPTER_ID)
 
-# Optional: For slightly faster inference, merge the adapter weights into the base model
 print("Merging adapter weights...")
 model = model.merge_and_unload()
 print("✅ Adapter merged.")

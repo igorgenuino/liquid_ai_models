@@ -11,9 +11,7 @@ import os
 # --- 1. CONFIGURATION (MODIFIED) ---
 # Updated model name for clarity
 MODEL_NAME = "SmolVLM2-500M (Base Model)" 
-# This is now the only model we will load
 BASE_MODEL_ID = r".\SmolVLM2-500M-Video-Instruct" 
-# REMOVED: ADAPTER_ID is no longer needed
 
 # --- PATH FOR THE GR.IMAGE COMPONENT ---
 project_path = r"."
@@ -69,14 +67,12 @@ model = AutoModelForImageTextToText.from_pretrained(
     low_cpu_mem_usage=True,
 )
 
-# REMOVED: The section for loading, applying, and merging the PeftModel adapter is gone.
 
 model.eval()
 processor = AutoProcessor.from_pretrained(BASE_MODEL_ID, trust_remote_code=True)
 print("✅ Base model and processor loaded successfully!\n")
 
 # --- 4. CORE CHAT LOGIC ---
-# MODIFIED: Made the system message more generic
 SYSTEM_MESSAGE = (
     "You are a helpful multimodal assistant. "
     "Provide a concise answer based on the image and question."
