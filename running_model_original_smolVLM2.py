@@ -206,4 +206,4 @@ with gr.Blocks(title=MODEL_NAME, theme=gr.themes.Soft(), css=CUSTOM_CSS) as demo
 
 # --- 6. LAUNCH THE APP ---
 if __name__ == "__main__":   
-    demo.queue().launch(favicon_path=favicon_path)
+    demo.queue().launch(server_port=7860, favicon_path=favicon_path)

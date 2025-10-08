@@ -346,7 +346,6 @@ with gr.Blocks(title="LFM2-VL Enhanced", theme=gr.themes.Soft(), css=CUSTOM_CSS)
         with gr.Row():
             send = gr.Button("🚀 Send", variant="primary", elem_id="send-btn", scale=1)
             clear = gr.Button("🗑️ Clear Chat", variant="secondary", scale=1)
-            gr.Markdown("*Note: Image is retained for follow-up questions until cleared or new image uploaded*")
     
     with gr.Accordion("⚙️ Generation Settings", open=False, elem_classes="accordion"):
         with gr.Row():
@@ -366,14 +365,6 @@ with gr.Blocks(title="LFM2-VL Enhanced", theme=gr.themes.Soft(), css=CUSTOM_CSS)
                 min_image_tokens = gr.Slider(16, 512, value=64, step=16, label="Min Image Tokens")
                 max_image_tokens = gr.Slider(64, 1024, value=256, step=16, label="Max Image Tokens")
                 do_image_splitting = gr.Checkbox(value=True, label="Enable Image Splitting (for large images)")
-    
-    with gr.Row():
-        gr.Markdown("""
-        <div style='text-align: center; margin-top: 20px; color: rgba(255,255,255,0.7);'>
-        💡 <b>Tips:</b> Upload an image once and ask multiple questions about it. 
-        The model will remember the image until you clear the chat or upload a new one.
-        </div>
-        """)
     
     # Event handlers
     msg.submit(
@@ -404,4 +395,4 @@ with gr.Blocks(title="LFM2-VL Enhanced", theme=gr.themes.Soft(), css=CUSTOM_CSS)
 
 # --- LAUNCH THE APP ---
 if __name__ == "__main__":   
-    demo.queue().launch(favicon_path=favicon_path)
+    demo.queue().launch(server_port=7861, favicon_path=favicon_path)
