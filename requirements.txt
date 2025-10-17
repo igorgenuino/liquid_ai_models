@@ -6,3 +6,6 @@ peft
 datasets
 trl
 accelerate
+sentence-transformers
+faiss-cpu
+numpy

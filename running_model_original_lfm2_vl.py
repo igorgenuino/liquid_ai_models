@@ -363,4 +363,5 @@ with gr.Blocks(title="LFM2-VL Base", theme=gr.themes.Soft(), css=CUSTOM_CSS) as 
 
 # --- LAUNCH THE APP ---
 if __name__ == "__main__":   
-    demo.queue().launch(server_port=7861, favicon_path=favicon_path)
+    demo.queue().launch(server_port=7862
+    , favicon_path=favicon_path)
